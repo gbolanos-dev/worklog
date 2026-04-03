@@ -2,3 +2,5 @@ worklog
 bin/
 *.yaml
 config.yaml
+INSTRUCTION.md
+.idea/

@@ -18,7 +18,7 @@
 
 ## MVP Commits
 
-- [ ] **Commit 1 — Init project scaffolding**
+- [x] **Commit 1 — Init project scaffolding**
 
   Create the following structure from scratch:
 
