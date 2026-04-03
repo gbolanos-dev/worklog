@@ -81,7 +81,7 @@
 
 ---
 
-- [ ] **Commit 2 — Config loader**
+- [x] **Commit 2 — Config loader**
 
   Implement `config/config.go` to load `~/.worklog/config.yaml` into a Go struct.
 
