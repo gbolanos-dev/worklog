@@ -1,0 +1,4 @@
+worklog
+bin/
+*.yaml
+config.yaml
