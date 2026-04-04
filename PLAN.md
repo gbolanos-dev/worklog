@@ -104,7 +104,7 @@
 
 ---
 
-- [ ] **Commit 3 — Store (read/write log entries)**
+- [x] **Commit 3 — Store (read/write log entries)**
 
   Implement `store/store.go` to manage `~/.worklog/log.json`.
 
