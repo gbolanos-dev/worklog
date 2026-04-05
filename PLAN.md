@@ -119,7 +119,7 @@
 
 ---
 
-- [ ] **Commit 4 — `add` command**
+- [x] **Commit 4 — `add` command**
 
   Wire up `cmd/add.go` using the cobra CLI library.
 
