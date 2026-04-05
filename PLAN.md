@@ -139,7 +139,7 @@
 
 ---
 
-- [ ] **Commit 5 — `list` command**
+- [x] **Commit 5 — `list` command**
 
   Implement `cmd/list.go` to display today's entries.
 

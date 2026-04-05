@@ -10,6 +10,7 @@ func main() {
 		Use: "worklog",
 	}
 	rootCmd.AddCommand(cmd.AddCmd)
+	rootCmd.AddCommand(cmd.ListCmd)
 	err := rootCmd.Execute()
 	if err != nil {
 		return
