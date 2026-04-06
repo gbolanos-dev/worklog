@@ -157,7 +157,7 @@
 
 ---
 
-- [ ] **Commit 6 — Claude API client**
+- [x] **Commit 6 — Claude API client**
 
   Implement a minimal Claude API wrapper.
 
