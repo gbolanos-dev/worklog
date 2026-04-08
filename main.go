@@ -11,6 +11,7 @@ func main() {
 	}
 	rootCmd.AddCommand(cmd.AddCmd)
 	rootCmd.AddCommand(cmd.ListCmd)
+	rootCmd.AddCommand(cmd.StandupCmd)
 	err := rootCmd.Execute()
 	if err != nil {
 		return

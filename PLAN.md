@@ -174,7 +174,7 @@
 
 ---
 
-- [ ] **Commit 7 — `standup` command**
+- [x] **Commit 7 — `standup` command**
 
   Implement `cmd/standup.go` to generate a standup from today's entries.
 
