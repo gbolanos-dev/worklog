@@ -228,7 +228,7 @@
 
 ---
 
-- [ ] **Commit 9 — feat: add cmd/worklog entry point and Makefile**
+- [x] **Commit 9 — feat: add cmd/worklog entry point and Makefile**
 
   Add a dedicated entry point so `go install` produces a binary named `worklog`.
 
