@@ -1,19 +1,11 @@
 package main
 
 import (
-	"github.com/gbolanos-dev/worklog/cmd"
-	"github.com/spf13/cobra"
+	"os"
+
+	"github.com/gbolanos-dev/worklog/internal/cli"
 )
 
 func main() {
-	var rootCmd = &cobra.Command{
-		Use: "worklog",
-	}
-	rootCmd.AddCommand(cmd.AddCmd)
-	rootCmd.AddCommand(cmd.ListCmd)
-	rootCmd.AddCommand(cmd.StandupCmd)
-	err := rootCmd.Execute()
-	if err != nil {
-		return
-	}
+	os.Exit(cli.Run(os.Args[1:]))
 }
