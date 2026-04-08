@@ -196,7 +196,7 @@
 
 ## v2 Commits — Install & Update Infrastructure
 
-- [ ] **Commit 8 — refactor: extract main logic into internal/cli**
+- [x] **Commit 8 — refactor: extract main logic into internal/cli**
 
   Prepare for multiple binary entry points without duplicating logic.
 
