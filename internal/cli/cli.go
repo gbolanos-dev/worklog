@@ -5,9 +5,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var Version = "dev"
+
 func Run(args []string) int {
 	var rootCmd = &cobra.Command{
-		Use: "worklog",
+		Use:     "worklog",
+		Version: Version,
 	}
 	rootCmd.AddCommand(cmd.AddCmd)
 	rootCmd.AddCommand(cmd.ListCmd)
