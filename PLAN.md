@@ -273,7 +273,7 @@
 
 ---
 
-- [ ] **Commit 10 — feat: --version flag via ldflags**
+- [x] **Commit 10 — feat: --version flag via ldflags**
 
   Wire a version string that gets stamped at build time from git tags.
 
