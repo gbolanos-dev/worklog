@@ -296,7 +296,7 @@
 
 ---
 
-- [ ] **Commit 11 — feat: update check with GitHub releases cache**
+- [x] **Commit 11 — feat: update check with GitHub releases cache**
 
   Background update detection with zero latency impact on commands.
 
