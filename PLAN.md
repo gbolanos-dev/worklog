@@ -322,7 +322,7 @@
 
 ---
 
-- [ ] **Commit 12 — feat: wire update notification into CLI**
+- [x] **Commit 12 — feat: wire update notification into CLI**
 
   Connect the update system to the CLI so every command run checks for updates.
 
