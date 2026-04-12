@@ -365,7 +365,7 @@
 
 ## v2 Commits — YouTrack & GitHub Context
 
-- [ ] **Commit 13 — feat: YouTrack fetch**
+- [x] **Commit 13 — feat: YouTrack fetch**
 
   Pull live ticket context into prompts.
 
