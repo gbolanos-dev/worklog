@@ -386,7 +386,7 @@
 
 ---
 
-- [ ] **Commit 14 — feat: GitHub PR fetch**
+- [x] **Commit 14 — feat: GitHub PR fetch**
 
   Pull PR context into prompts.
 

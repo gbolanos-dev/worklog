@@ -10,6 +10,7 @@ import (
 type Config struct {
 	Anthropic Anthropic `yaml:"anthropic"`
 	YouTrack  YouTrack  `yaml:"youtrack"`
+	GitHub    GitHub    `yaml:"github"`
 }
 
 type Anthropic struct {
@@ -19,6 +20,11 @@ type Anthropic struct {
 type YouTrack struct {
 	BaseURL string `yaml:"base_url"`
 	Token   string `yaml:"token"`
+}
+
+type GitHub struct {
+	Token       string `yaml:"token"`
+	DefaultRepo string `yaml:"default_repo"`
 }
 
 func Load() (*Config, error) {
