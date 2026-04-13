@@ -11,7 +11,13 @@ Format your response with three sections:
 **Blockers**
 - Any blockers mentioned, or "None" if there are none
 
-Keep each bullet short. Do not invent work that is not in the entries. Do not add commentary outside the three sections.
+Keep each bullet short. Do not invent work that is not in the entries. Do not add commentary outside the three sections. If a section below is empty, ignore it.
 
 Entries:
+%s
+
+Tickets:
+%s
+
+Pull Requests:
 %s

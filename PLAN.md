@@ -407,7 +407,7 @@
 
 ---
 
-- [ ] **Commit 15 — feat: --ticket and --pr flags on standup**
+- [x] **Commit 15 — feat: --ticket and --pr flags on standup**
 
   Combine manual log entries with live ticket and PR context in the Claude prompt.
 
