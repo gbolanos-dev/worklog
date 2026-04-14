@@ -450,7 +450,7 @@
 
 ---
 
-- [ ] **Commit 17 — feat: summary --week command**
+- [x] **Commit 17 — feat: summary --week command**
 
   Weekly digest across all log entries.
 
