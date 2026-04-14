@@ -73,6 +73,37 @@ func GetEntriesForDate(date string) ([]Entry, error) {
 	return filtered, nil
 }
 
+func GetEntriesSince(since string) ([]Entry, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	dir := filepath.Join(home, ".worklog")
+
+	entries, err := loadEntries(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	cutoff, err := time.Parse("2006-01-02", since)
+	if err != nil {
+		return nil, err
+	}
+
+	var filtered []Entry
+	for _, entry := range entries {
+		entryDate, err := time.Parse("2006-01-02", entry.Date)
+		if err != nil {
+			return nil, err
+		}
+		if !entryDate.Before(cutoff) {
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered, nil
+}
+
 func loadEntries(dir string) ([]Entry, error) {
 	data, err := os.ReadFile(filepath.Join(dir, "log.json"))
 	if err != nil && !os.IsNotExist(err) {
