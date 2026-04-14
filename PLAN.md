@@ -426,7 +426,7 @@
 
 ---
 
-- [ ] **Commit 16 — feat: worklog chat interactive mode**
+- [x] **Commit 16 — feat: worklog chat interactive mode**
 
   Load all context once then iterate on output interactively.
 

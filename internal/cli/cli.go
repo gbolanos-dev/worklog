@@ -36,6 +36,7 @@ func Run(args []string) int {
 	rootCmd.AddCommand(cmd.AddCmd)
 	rootCmd.AddCommand(cmd.ListCmd)
 	rootCmd.AddCommand(cmd.StandupCmd)
+	rootCmd.AddCommand(cmd.ChatCmd)
 
 	rootCmd.SetArgs(args)
 	err := rootCmd.Execute()

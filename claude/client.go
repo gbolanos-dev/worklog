@@ -40,12 +40,14 @@ type ContentBlock struct {
 }
 
 func (c *Client) Complete(prompt string) (string, error) {
+	return c.Chat([]Message{{Role: "user", Content: prompt}})
+}
+
+func (c *Client) Chat(messages []Message) (string, error) {
 	req := Request{
 		Model:     "claude-haiku-4-5-20251001",
 		MaxTokens: 1024,
-		Messages: []Message{
-			{Role: "user", Content: prompt},
-		},
+		Messages:  messages,
 	}
 
 	data, err := json.Marshal(req)
@@ -65,10 +67,7 @@ func (c *Client) Complete(prompt string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(resp.Body)
+	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
@@ -76,8 +75,7 @@ func (c *Client) Complete(prompt string) (string, error) {
 	}
 
 	var result Response
-	err = json.NewDecoder(resp.Body).Decode(&result)
-	if err != nil {
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return "", err
 	}
 
