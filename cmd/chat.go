@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var chatTickets []string
+var chatIssues []string
 var chatPRs []string
 
 var ChatCmd = &cobra.Command{
@@ -36,7 +36,7 @@ var ChatCmd = &cobra.Command{
 
 		entriesText := buildEntriesText(entries)
 
-		ticketsText, err := buildTicketsText(cfg, chatTickets)
+		ticketsText, err := buildTicketsText(cfg, chatIssues)
 		if err != nil {
 			return err
 		}
@@ -92,6 +92,6 @@ var ChatCmd = &cobra.Command{
 }
 
 func init() {
-	ChatCmd.Flags().StringArrayVarP(&chatTickets, "ticket", "t", nil, "YouTrack Ticket IDs")
+	ChatCmd.Flags().StringArrayVarP(&chatIssues, "issue", "i", nil, "YouTrack issue IDs")
 	ChatCmd.Flags().StringArrayVarP(&chatPRs, "pr", "p", nil, "GitHub PR number")
 }

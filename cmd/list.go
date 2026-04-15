@@ -8,6 +8,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var tag string
+
 var ListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List all work entries",
@@ -18,10 +20,20 @@ var ListCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if tag != "" {
+			entries, err = store.GetEntriesByTag(tag)
+			if err != nil {
+				return err
+			}
+		}
 
 		for i, entry := range entries {
 			fmt.Printf("%d. %s\n", i+1, entry.Entry)
 		}
 		return nil
 	},
+}
+
+func init() {
+	ListCmd.Flags().StringVarP(&tag, "tag", "t", "", "Filter entries by tag")
 }

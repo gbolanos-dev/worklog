@@ -9,12 +9,13 @@ import (
 )
 
 type Entry struct {
-	ID    string `json:"id"`
-	Date  string `json:"date"`
-	Entry string `json:"entry"`
+	ID    string   `json:"id"`
+	Date  string   `json:"date"`
+	Entry string   `json:"entry"`
+	Tags  []string `json:"tags"`
 }
 
-func AddEntry(text string) error {
+func AddEntry(text string, tags []string) error {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return err
@@ -35,6 +36,7 @@ func AddEntry(text string) error {
 		ID:    fmt.Sprintf("%x", time.Now().UnixNano()),
 		Date:  time.Now().Format("2006-01-02"),
 		Entry: text,
+		Tags:  tags,
 	}
 
 	entries = append(entries, entry)
@@ -49,6 +51,31 @@ func AddEntry(text string) error {
 		return err
 	}
 	return nil
+}
+
+func GetEntriesByTag(tag string) ([]Entry, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	dir := filepath.Join(home, ".worklog")
+
+	entries, err := loadEntries(dir)
+	if err != nil {
+		return nil, err
+	}
+
+	var filtered []Entry
+	for _, entry := range entries {
+		for _, t := range entry.Tags {
+			if t == tag {
+				filtered = append(filtered, entry)
+				break
+			}
+		}
+	}
+	return filtered, nil
 }
 
 func GetEntriesForDate(date string) ([]Entry, error) {
