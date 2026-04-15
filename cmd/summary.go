@@ -13,6 +13,7 @@ import (
 
 var week bool
 var format string
+var summaryTag string
 
 var SummaryCmd = &cobra.Command{
 	Use:   "summary",
@@ -26,9 +27,14 @@ var SummaryCmd = &cobra.Command{
 
 		since := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
 		entries, err := store.GetEntriesSince(since)
-
 		if err != nil {
 			return err
+		}
+		if summaryTag != "" {
+			entries, err = store.GetEntriesByTag(summaryTag)
+			if err != nil {
+				return err
+			}
 		}
 		if len(entries) == 0 {
 			fmt.Println("No entries were found.")
@@ -59,4 +65,5 @@ var SummaryCmd = &cobra.Command{
 func init() {
 	SummaryCmd.Flags().BoolVar(&week, "week", false, "Show summary for the week")
 	SummaryCmd.Flags().StringVarP(&format, "format", "f", "", "Output format")
+	SummaryCmd.Flags().StringVarP(&summaryTag, "tag", "t", "", "Filter entries by tag")
 }

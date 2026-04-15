@@ -1,6 +1,6 @@
 # worklog
 
-A CLI tool that turns daily work log entries into polished standups via Claude.
+A CLI tool that logs daily work entries and generates standups, summaries, and more via Claude.
 
 ## Install
 
@@ -15,15 +15,38 @@ Create `~/.worklog/config.yaml`:
 ```yaml
 anthropic:
   api_key: "sk-ant-..."
+
+# Optional: enable YouTrack and GitHub context
+youtrack:
+  base_url: "https://youtrack.example.com"
+  token: "perm:..."
+
+github:
+  token: "ghp_..."
+  default_repo: "owner/repo"
 ```
 
 ## Usage
 
 ```bash
-worklog add "fixed timezone tests in DateUtilitiesTest"
-worklog add "rebased SE-1173, resolved conflicts in PythonScriptEditor"
+# Log entries throughout the day
+worklog add "refactored auth middleware"
+worklog add --tag backend "added rate limiting to API"
+
+# View today's entries
 worklog list
+worklog list --tag backend
+
+# Generate a standup
 worklog standup
+worklog standup --issue PROJ-100 --pr 42
+
+# Weekly summary
+worklog summary --week
+worklog summary --week --format promo
+
+# Interactive chat with Claude using your work context
+worklog chat
 ```
 
 ## Build from source

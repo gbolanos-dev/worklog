@@ -14,8 +14,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var tickets []string
+var issues []string
 var prs []string
+var standupTag string
 
 var StandupCmd = &cobra.Command{
 	Use:   "standup",
@@ -32,6 +33,12 @@ var StandupCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if standupTag != "" {
+			entries, err = store.GetEntriesByTag(standupTag)
+			if err != nil {
+				return err
+			}
+		}
 		if len(entries) == 0 {
 			fmt.Println("No entries were found.")
 			return nil
@@ -39,7 +46,7 @@ var StandupCmd = &cobra.Command{
 
 		entriesText := buildEntriesText(entries)
 
-		ticketsText, err := buildTicketsText(cfg, tickets)
+		ticketsText, err := buildTicketsText(cfg, issues)
 		if err != nil {
 			return err
 		}
@@ -62,8 +69,9 @@ var StandupCmd = &cobra.Command{
 }
 
 func init() {
-	StandupCmd.Flags().StringArrayVarP(&tickets, "ticket", "t", nil, "YouTrack Ticket IDs")
+	StandupCmd.Flags().StringArrayVarP(&issues, "issue", "i", nil, "YouTrack issue IDs")
 	StandupCmd.Flags().StringArrayVarP(&prs, "pr", "p", nil, "GitHub PR number")
+	StandupCmd.Flags().StringVarP(&standupTag, "tag", "t", "", "Filter entries by tag")
 }
 
 func buildEntriesText(entries []store.Entry) string {

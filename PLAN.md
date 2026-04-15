@@ -469,7 +469,7 @@
 
 ---
 
-- [ ] **Commit 18 — feat: tag support**
+- [x] **Commit 18 — feat: tag support**
 
   Tag entries at log time and filter by tag on any command.
 
