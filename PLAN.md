@@ -486,3 +486,388 @@
   ```
 
   **Commit message:** `feat: tag support on add and filter commands`
+
+---
+
+## Phase 2A: Correctness and Queryable Logs
+
+- [ ] **Commit 19 -- feat(store): add FilterByTag helper**
+
+  Add `FilterByTag(entries []Entry, tag string) []Entry` to `store/store.go`. A pure function that filters an already-loaded slice instead of loading from disk. Do NOT remove `GetEntriesByTag` yet.
+
+  **Go concepts:** Pure functions on slices, no I/O side effects.
+
+  **Verify:** `go build ./...`
+
+  **Commit message:** `feat(store): add FilterByTag helper for in-memory filtering`
+
+---
+
+- [ ] **Commit 20 -- fix: tag filter no longer replaces date-scoped entries**
+
+  In `list.go`, `standup.go`, and `summary.go`, replace:
+  ```go
+  entries, err = store.GetEntriesByTag(tag)
+  ```
+  with:
+  ```go
+  entries = store.FilterByTag(entries, tag)
+  ```
+
+  Then remove `GetEntriesByTag` from `store/store.go` (now unused).
+
+  **Go concepts:** Dead code removal. Composing filter functions.
+
+  **Verify:**
+  ```bash
+  go build ./...
+  go run main.go add --tag test "tagged entry"
+  go run main.go list --tag test
+  # Should only show today's entries with that tag
+  ```
+
+  **Commit message:** `fix(cmd): tag filter no longer replaces date-scoped entries`
+
+---
+
+- [ ] **Commit 21 -- fix: remove unused --week flag from summary**
+
+  Remove `var week bool` and `BoolVar(&week, "week", ...)` from `summary.go`. The command always shows the past 7 days regardless of the flag.
+
+  Also update `README.md` in the same commit: the Usage section currently documents `worklog summary --week` and `worklog summary --week --format promo`. Replace those with `worklog summary` and `worklog summary --format promo` so docs match the CLI.
+
+  **Go concepts:** Flag hygiene -- don't ship flags that do nothing. Keep docs and CLI surface in sync within a single commit.
+
+  **Verify:**
+  ```bash
+  go run main.go summary --help  # --week should be gone
+  grep -- "--week" README.md     # should produce no output
+  ```
+
+  **Commit message:** `fix(cmd): remove unused --week flag from summary`
+
+---
+
+- [ ] **Commit 22 -- feat: list --date flag**
+
+  Add `--date` / `-d` flag to `list`. If provided, use that date instead of today. Validate format with `time.Parse("2006-01-02", date)`.
+
+  **Go concepts:** `time.Parse` with Go's reference date, input validation at command boundary.
+
+  **Verify:**
+  ```bash
+  go run main.go list --date 2026-04-15
+  go run main.go list --date bad-date  # should error
+  ```
+
+  **Commit message:** `feat(cmd): add --date flag to list command`
+
+---
+
+- [ ] **Commit 23 -- feat: list --since and --until flags**
+
+  Add `--since` and `--until` flags. Use `GetEntriesSince` then post-filter with a new `FilterUntil(entries []Entry, until string) ([]Entry, error)` in store.
+
+  **Validation rules (enforce at the command boundary, before any store calls):**
+  1. `--date` is mutually exclusive with BOTH `--since` and `--until` (use `cmd.MarkFlagsMutuallyExclusive` twice -- cobra groups are pairwise).
+  2. `--until` requires `--since` to also be set. Using `--until` alone is an error.
+  3. If both `--since` and `--until` are set, `--until` must be on or after `--since`. Reject with a clear error message.
+  4. All date inputs must parse with `time.Parse("2006-01-02", ...)`. Reject malformed input up front.
+
+  Default behavior (no flags): same as today -- show today's entries only.
+
+  **Go concepts:** `time.Time.After()` / `time.Time.Before()`, `cmd.MarkFlagsMutuallyExclusive`, composing filter pipelines, `PreRunE` for validation that must happen before `RunE`.
+
+  **Verify:**
+  ```bash
+  go run main.go list --since 2026-04-01
+  go run main.go list --since 2026-04-01 --until 2026-04-10
+  go run main.go list --date 2026-04-15 --since 2026-04-01   # should error (mutex)
+  go run main.go list --date 2026-04-15 --until 2026-04-10   # should error (mutex)
+  go run main.go list --until 2026-04-10                     # should error (until requires since)
+  go run main.go list --since 2026-04-10 --until 2026-04-01  # should error (until before since)
+  go run main.go list --since bad-date                       # should error (parse)
+  ```
+
+  **Commit message:** `feat(cmd): add --since and --until flags to list command`
+
+---
+
+## Phase 2B: Entry Lifecycle and CLI UX
+
+- [ ] **Commit 24 -- feat: show entry IDs in list output**
+
+  Edit and delete work by hex ID, so the ID must be visible to the user. Right now `list` shows only `N. entry text`, forcing users to `cat ~/.worklog/log.json` -- we ship this *before* the commands that depend on it.
+
+  In `cmd/list.go`, update the default (non-JSON, once --json exists) output so each row includes a short, copyable form of the ID. Use the first 8 characters of `Entry.ID` to keep it scannable, and accept either the short or full ID in later `delete` / `edit` commands (handled in their commits).
+
+  Suggested format (the exact layout is up to you, but ID must be visible and trivially copyable):
+  ```
+  1. [a1b2c3d4] fixed timezone tests in DateUtilitiesTest [backend]
+  ```
+
+  **Go concepts:** `string` slicing (`id[:8]`), UX-driven output design, shipping discoverability before the feature that depends on it.
+
+  **Verify:**
+  ```bash
+  go run main.go add "id visibility test"
+  go run main.go list
+  # Output row should include an 8-char ID prefix that matches the entry in log.json
+  ```
+
+  **Commit message:** `feat(cmd): show short entry IDs in list output`
+
+---
+
+- [ ] **Commit 25 -- feat: delete command**
+
+  Create `cmd/delete.go`. Takes one arg: entry ID (full hex or the short 8-char prefix from Commit 24). Add `DeleteEntry(id string) error` to store (load, find by prefix match, remove from slice, write back). If the prefix matches more than one entry, return an error asking the user to disambiguate with a longer prefix. Register in `cli.go`.
+
+  **Go concepts:** Deleting from a slice: `append(entries[:i], entries[i+1:]...)`. The `...` variadic unpacking operator. `strings.HasPrefix` for prefix matching. Handling ambiguous matches cleanly.
+
+  **Verify:**
+  ```bash
+  go run main.go add "entry to delete"
+  go run main.go list            # copy the 8-char ID from output
+  go run main.go delete <id>     # short prefix should work
+  go run main.go list            # entry should be gone
+  ```
+
+  **Commit message:** `feat(cmd): delete command removes entry by ID`
+
+---
+
+- [ ] **Commit 26 -- feat: edit command**
+
+  Create `cmd/edit.go`. Takes two args: entry ID (full or short prefix) and new text. Add `EditEntry(id, newText string) error` to store. Same prefix-matching rules as `delete`: reject ambiguous matches with a clear error. Register in `cli.go`.
+
+  **Go concepts:** Mutating structs in a slice -- must use `entries[i].Entry = newText`, not the range copy `e.Entry = newText` (it would silently no-op). Reuse of the same prefix-lookup pattern from Commit 25.
+
+  **Verify:**
+  ```bash
+  go run main.go add "typo entry"
+  go run main.go list               # copy short ID
+  go run main.go edit <id> "corrected entry"
+  go run main.go list               # should show corrected text
+  ```
+
+  **Commit message:** `feat(cmd): edit command updates entry text by ID`
+
+---
+
+- [ ] **Commit 27 -- feat: list --json output mode**
+
+  Add `--json` bool flag to `list`. When true, output `json.MarshalIndent(entries, "", "  ")` instead of numbered text.
+
+  **Go concepts:** `json.MarshalIndent`, struct tags controlling output, same data with different presentation.
+
+  **Verify:**
+  ```bash
+  go run main.go list --json
+  go run main.go list --json --tag work
+  ```
+
+  **Commit message:** `feat(cmd): add --json output mode to list command`
+
+---
+
+- [ ] **Commit 28 -- feat: init command for interactive config setup**
+
+  Create `cmd/init.go`. Prompts for API keys/URLs via `bufio.NewReader(os.Stdin)`. Builds `config.Config`, marshals to YAML, writes to `~/.worklog/config.yaml`. Warns if file exists.
+
+  **Go concepts:** `bufio.NewReader` vs `bufio.Scanner`, `yaml.Marshal` (inverse of Unmarshal), `os.Stat` for file existence.
+
+  **Verify:**
+  ```bash
+  cp ~/.worklog/config.yaml ~/.worklog/config.yaml.bak
+  go run main.go init
+  cat ~/.worklog/config.yaml
+  mv ~/.worklog/config.yaml.bak ~/.worklog/config.yaml
+  ```
+
+  **Commit message:** `feat(cmd): init command for interactive config setup`
+
+---
+
+- [ ] **Commit 29 -- feat: config validation**
+
+  Add `Validate(sections ...string) error` method on `*Config`. Checks required fields are non-empty. Returns descriptive error with hint to run `worklog init`. Call it in standup, summary, chat before API calls.
+
+  **Go concepts:** Methods on structs, variadic parameters, `fmt.Errorf`, early return validation pattern.
+
+  **Verify:**
+  ```bash
+  # Temporarily clear api_key in config, then:
+  go run main.go standup
+  # Should print: config: anthropic.api_key is required (run "worklog init" to set up)
+  ```
+
+  **Commit message:** `feat(config): validate required fields before commands run`
+
+---
+
+## Phase 2C: CLI Polish
+
+- [ ] **Commit 30 -- feat: add lipgloss for styled output**
+
+  Add `charmbracelet/lipgloss` for colored, styled terminal output across all commands.
+
+  - `go get github.com/charmbracelet/lipgloss`
+  - Create `internal/ui/styles.go` with package `ui` that defines reusable styles:
+    - `Success` -- green text (for "Logged:", "Deleted:", "Updated:" confirmations)
+    - `Warning` -- yellow text (for "No entries found", update notifications)
+    - `Header` -- bold cyan (for section headers in stats, retro)
+    - `Muted` -- gray (for IDs, dates, secondary info)
+    - `Error` -- red bold (for error messages)
+  - Update `cmd/add.go`, `cmd/list.go`, and `cmd/delete.go` (once it exists) to use styled output
+  - Keep it restrained: color enhances, text should still be clear without ANSI
+
+  **Go concepts:** Third-party library integration. Package-level variables for reusable config. The `lipgloss.NewStyle()` builder pattern (method chaining). Separating presentation from logic by centralizing styles in one package.
+
+  **Verify:**
+  ```bash
+  go build ./...
+  go run main.go add "styled entry"
+  # "Logged:" should appear in green
+  go run main.go list
+  # Entry numbers or dates should have subtle color
+  ```
+
+  **Commit message:** `feat(ui): add lipgloss for styled terminal output`
+
+---
+
+- [ ] **Commit 31 -- feat: table-formatted list output**
+
+  Replace the plain numbered list in `list` with a formatted table using lipgloss table.
+
+  - Use `github.com/charmbracelet/lipgloss/table` (included with lipgloss)
+  - Table columns: `#`, `Date`, `Entry`, `Tags`
+  - Apply header styling using the styles from `internal/ui/styles.go`
+  - Only use table format for the default (non-JSON) output
+  - Also apply table formatting to `stats` output (once it exists)
+
+  **Go concepts:** Working with lipgloss table API: `table.New()`, `table.Row()`, `table.Headers()`. Rendering styled tables to stdout. Conditional formatting (table vs JSON vs plain).
+
+  **Verify:**
+  ```bash
+  go build ./...
+  go run main.go add --tag work "table test"
+  go run main.go list
+  # Should display a nicely formatted table with columns
+  go run main.go list --json
+  # JSON output should remain unchanged
+  ```
+
+  **Commit message:** `feat(ui): table-formatted list output with lipgloss`
+
+---
+
+- [ ] **Commit 32 -- feat: spinner for API calls**
+
+  Add a spinner/loading indicator while waiting for Claude API responses in standup, summary, retro, and chat.
+
+  - `go get github.com/schollz/progressbar/v3`
+  - `go get golang.org/x/term` (for TTY detection)
+  - Create a helper in `internal/ui/spinner.go`:
+    - `StartSpinner(label string) *progressbar.ProgressBar` -- creates and starts an indeterminate spinner
+    - `StopSpinner(bar *progressbar.ProgressBar)` -- clears the spinner line
+  - **TTY detection:** `StartSpinner` must check `term.IsTerminal(int(os.Stderr.Fd()))` first. If stderr is not a terminal (piped, redirected, CI, non-interactive), return `nil` and render nothing. `StopSpinner` must be a no-op when passed `nil`. This keeps scripted use clean -- no control characters in logs.
+  - Wrap `client.Complete()` calls: start spinner before, stop after
+  - For chat, show spinner during each turn's API call
+  - Spinner writes to stderr so it doesn't pollute stdout when the command's stdout is piped
+
+  **Go concepts:** Writing to `os.Stderr` vs `os.Stdout`. `golang.org/x/term.IsTerminal` for interactivity detection. Nil-safe helper APIs. Cleaning up terminal state (clearing the spinner line). The pattern of wrapping I/O calls with UI feedback without changing the underlying logic.
+
+  **Verify:**
+  ```bash
+  go build ./...
+  go run main.go standup
+  # Should see a spinner while waiting for Claude's response
+
+  go run main.go standup 2>/tmp/stderr.log
+  # No spinner visible, and /tmp/stderr.log should contain no ANSI escape codes
+
+  go run main.go standup | cat
+  # Stdout is piped but stderr is still the terminal -- spinner should still render
+  ```
+
+  **Commit message:** `feat(ui): add spinner for API calls`
+
+---
+
+- [ ] **Commit 33 -- feat: use huh for interactive init command**
+
+  Replace raw `bufio` prompts in the `init` command with `charmbracelet/huh` forms.
+
+  - `go get github.com/charmbracelet/huh/v2`
+  - Rewrite `cmd/init.go` to use `huh.NewForm()` with:
+    - `huh.NewInput()` for text fields (API key, base URL, token, repo)
+    - `huh.NewConfirm()` for overwrite confirmation
+  - Group fields into logical sections: "Anthropic", "YouTrack (optional)", "GitHub (optional)"
+  - Optional sections can be skipped
+
+  **Go concepts:** Declarative UI with builder pattern. `huh.NewForm().WithGroups(...)`. Error handling from form submission. Comparing imperative I/O (`bufio` read loop) vs declarative forms (`huh` schema). This is a common pattern shift in modern Go tooling.
+
+  **Verify:**
+  ```bash
+  go build ./...
+  cp ~/.worklog/config.yaml ~/.worklog/config.yaml.bak
+  go run main.go init
+  # Should show a polished interactive form
+  cat ~/.worklog/config.yaml
+  mv ~/.worklog/config.yaml.bak ~/.worklog/config.yaml
+  ```
+
+  **Commit message:** `feat(cmd): use huh for interactive init prompts`
+
+---
+
+## Phase 2D: AI Workflows and Reporting
+
+- [ ] **Commit 34 -- feat: retro command**
+
+  Create `prompts/retro.md` (wins/blockers/improvements template). Embed it in `prompts/prompts.go`. Create `cmd/retro.go` with `--days` (default 14) and `--tag` flags.
+
+  **Go concepts:** Reinforces `//go:embed`, the full AI workflow pattern, `strconv.Itoa`.
+
+  **Verify:**
+  ```bash
+  go run main.go retro
+  go run main.go retro --days 7 --tag backend
+  ```
+
+  **Commit message:** `feat(cmd): retro command generates AI retrospective`
+
+---
+
+- [ ] **Commit 35 -- feat: export command**
+
+  Create `cmd/export.go`. Dumps entries as markdown grouped by date. Add `GetAllEntries() ([]Entry, error)` to store. Supports `--since`, `--until`, `--tag` flags. Outputs to stdout for piping.
+
+  **Go concepts:** `strings.Builder` for efficient concatenation, `sort.Slice` for ordering, `map[string][]Entry` for grouping.
+
+  **Verify:**
+  ```bash
+  go run main.go export
+  go run main.go export --since 2026-04-01 --tag work
+  go run main.go export > /tmp/log.md && cat /tmp/log.md
+  ```
+
+  **Commit message:** `feat(cmd): export command dumps entries as markdown`
+
+---
+
+- [ ] **Commit 36 -- feat: stats command**
+
+  Create `cmd/stats.go`. Shows total entries, entries per day (with bar chart), tag breakdown sorted by count, most active day. Supports `--since` and `--until` flags.
+
+  **Go concepts:** `map[string]int` for counting, sorting maps by value, `strings.Repeat` for bars, `fmt.Sprintf("%-15s", ...)` for aligned columns.
+
+  **Verify:**
+  ```bash
+  go run main.go stats
+  go run main.go stats --since 2026-04-01
+  ```
+
+  **Commit message:** `feat(cmd): stats command shows entry analytics`
