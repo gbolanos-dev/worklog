@@ -8,9 +8,12 @@ import (
 
 	"github.com/gbolanos-dev/worklog/claude"
 	"github.com/gbolanos-dev/worklog/config"
+	"github.com/gbolanos-dev/worklog/prompts"
 	"github.com/gbolanos-dev/worklog/store"
 	"github.com/spf13/cobra"
 )
+
+var chatFrom string
 
 var chatIssues []string
 var chatPRs []string
@@ -46,22 +49,39 @@ var ChatCmd = &cobra.Command{
 			return err
 		}
 
-		// Build context string from entries/tickets/PRs (same as standup)
 		context := fmt.Sprintf(
-			"Here is my work context:\n\nEntries:\n%s\nTickets:\n%s\nPull Requests:\n%s",
+			"%s\n\nHere is my work context:\n\nEntries:\n%s\nTickets:\n%s\nPull Requests:\n%s",
+			prompts.Chat,
 			entriesText,
 			ticketsText,
 			prsText)
 
-		// Start history with context as the first message + Claude's acknowledgment
+		// Start history with chat instructions, work context, and Claude's acknowledgment.
 		history := []claude.Message{
 			{Role: "user", Content: context},
 			{Role: "assistant", Content: "I have your work context loaded. How can I help?"},
 		}
 
+		if chatFrom != "" {
+			if chatFrom != "standup" {
+				return fmt.Errorf("unsupported --from value %q (valid options: standup)", chatFrom)
+			}
+
+			standup, err := generateStandup(cfg, entries, chatIssues, chatPRs)
+			if err != nil {
+				return err
+			}
+
+			history = append(history, claude.Message{Role: "assistant", Content: standup})
+		}
+
 		client := claude.NewClient(cfg.Anthropic.APIKey)
 		scanner := bufio.NewScanner(os.Stdin)
-		fmt.Println("Chat started. Type 'exit' to quit.")
+		if chatFrom == "standup" {
+			fmt.Println("Chat started from generated standup. Type 'exit' to quit.")
+		} else {
+			fmt.Println("Chat started. Type 'exit' to quit.")
+		}
 		for {
 			fmt.Print("> ")
 			if !scanner.Scan() {
@@ -94,4 +114,5 @@ var ChatCmd = &cobra.Command{
 func init() {
 	ChatCmd.Flags().StringArrayVarP(&chatIssues, "issue", "i", nil, "YouTrack issue IDs")
 	ChatCmd.Flags().StringArrayVarP(&chatPRs, "pr", "p", nil, "GitHub PR number")
+	ChatCmd.Flags().StringVarP(&chatFrom, "from", "f", "", "Seed chat with a generated artifact (currently: standup)")
 }

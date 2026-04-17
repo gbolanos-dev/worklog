@@ -114,3 +114,37 @@ func buildPRsText(cfg *config.Config, prNums []string) (string, error) {
 	}
 	return s, nil
 }
+
+func generateStandup(
+	cfg *config.Config,
+	entries []store.Entry,
+	issueIDs []string,
+	prIDs []string,
+) (string, error) {
+	entriesText := buildEntriesText(entries)
+
+	ticketsText, err := buildTicketsText(cfg, issueIDs)
+	if err != nil {
+		return "", err
+	}
+
+	prsText, err := buildPRsText(cfg, prIDs)
+	if err != nil {
+		return "", err
+	}
+
+	prompt := fmt.Sprintf(
+		prompts.Standup,
+		entriesText,
+		ticketsText,
+		prsText)
+
+	client := claude.NewClient(cfg.Anthropic.APIKey)
+
+	resp, err := client.Complete(prompt)
+	if err != nil {
+		return "", err
+	}
+
+	return resp, nil
+}
