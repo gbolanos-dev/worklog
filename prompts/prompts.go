@@ -10,3 +10,6 @@ var Summary string
 
 //go:embed promo.md
 var Promo string
+
+//go:embed chat.md
+var Chat string
