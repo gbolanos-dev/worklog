@@ -530,37 +530,45 @@
 
 ---
 
-- [ ] **Commit 21 -- fix: remove unused --week flag from summary**
+- [ ] **Commit 21 -- fix: replace unused --week flag with --days on summary**
 
   Remove `var week bool` and `BoolVar(&week, "week", ...)` from `summary.go`. The command always shows the past 7 days regardless of the flag.
 
-  Also update `README.md` in the same commit: the Usage section currently documents `worklog summary --week` and `worklog summary --week --format promo`. Replace those with `worklog summary` and `worklog summary --format promo` so docs match the CLI.
+  Replace it with `--days N` (default 7). Use the value to compute the `since` date: `time.Now().AddDate(0, 0, -days)`. This gives the user actual control over the summary range instead of removing flexibility.
 
-  **Go concepts:** Flag hygiene -- don't ship flags that do nothing. Keep docs and CLI surface in sync within a single commit.
+  Also update `README.md`: replace `worklog summary --week` with `worklog summary` and `worklog summary --days 14`. Update `worklog summary --week --format promo` to `worklog summary --format promo`.
+
+  **Go concepts:** Flag hygiene -- replace dead flags with useful ones. `IntVar` for numeric flags. Keep docs and CLI surface in sync within a single commit.
 
   **Verify:**
   ```bash
-  go run main.go summary --help  # --week should be gone
-  grep -- "--week" README.md     # should produce no output
+  go run main.go summary --help    # --week should be gone, --days should appear
+  go run main.go summary           # defaults to 7 days
+  go run main.go summary --days 14 # two-week summary
+  grep -- "--week" README.md       # should produce no output
   ```
 
-  **Commit message:** `fix(cmd): remove unused --week flag from summary`
+  **Commit message:** `fix(cmd): replace unused --week flag with --days on summary`
 
 ---
 
-- [ ] **Commit 22 -- feat: list --date flag**
+- [ ] **Commit 22 -- feat: --date flag on list and standup**
 
-  Add `--date` / `-d` flag to `list`. If provided, use that date instead of today. Validate format with `time.Parse("2006-01-02", date)`.
+  Add `--date` / `-d` flag to both `list` and `standup`. If provided, use that date instead of today. Validate format with `time.Parse("2006-01-02", date)`.
 
-  **Go concepts:** `time.Parse` with Go's reference date, input validation at command boundary.
+  For `list`, this shows entries for the specified date. For `standup`, this generates a standup from that date's entries — useful when you forgot to run it yesterday.
+
+  **Go concepts:** `time.Parse` with Go's reference date, input validation at command boundary, applying the same flag pattern to multiple commands.
 
   **Verify:**
   ```bash
   go run main.go list --date 2026-04-15
-  go run main.go list --date bad-date  # should error
+  go run main.go list --date bad-date      # should error
+  go run main.go standup --date 2026-04-15  # standup for a specific day
+  go run main.go standup --date bad-date    # should error
   ```
 
-  **Commit message:** `feat(cmd): add --date flag to list command`
+  **Commit message:** `feat(cmd): add --date flag to list and standup commands`
 
 ---
 
@@ -623,14 +631,17 @@
 
   Create `cmd/delete.go`. Takes one arg: entry ID (full hex or the short 8-char prefix from Commit 24). Add `DeleteEntry(id string) error` to store (load, find by prefix match, remove from slice, write back). If the prefix matches more than one entry, return an error asking the user to disambiguate with a longer prefix. Register in `cli.go`.
 
-  **Go concepts:** Deleting from a slice: `append(entries[:i], entries[i+1:]...)`. The `...` variadic unpacking operator. `strings.HasPrefix` for prefix matching. Handling ambiguous matches cleanly.
+  **Confirmation by default:** Before deleting, print the matched entry text and prompt `Delete this entry? [y/N]` using `bufio.NewReader(os.Stdin)`. Only proceed on `y` or `Y`. Add a `--force` / `-f` flag to skip the prompt (useful for scripting).
+
+  **Go concepts:** Deleting from a slice: `append(entries[:i], entries[i+1:]...)`. The `...` variadic unpacking operator. `strings.HasPrefix` for prefix matching. Defensive UX with confirmation prompts. `bufio.NewReader` for single-line stdin reads.
 
   **Verify:**
   ```bash
   go run main.go add "entry to delete"
-  go run main.go list            # copy the 8-char ID from output
-  go run main.go delete <id>     # short prefix should work
-  go run main.go list            # entry should be gone
+  go run main.go list             # copy the 8-char ID from output
+  go run main.go delete <id>      # should show entry and ask for confirmation
+  go run main.go delete -f <id>   # should delete without asking
+  go run main.go list             # entry should be gone
   ```
 
   **Commit message:** `feat(cmd): delete command removes entry by ID`
@@ -706,9 +717,34 @@
 
 ---
 
+- [ ] **Commit 30 -- feat: configurable model and max tokens**
+
+  Add `anthropic.model` (default `claude-haiku-4-5-20251001`) and `anthropic.max_tokens` (default `1024`) to the config struct in `config/config.go`. Update `claude/client.go` to accept these values instead of hardcoding them — pass them through `NewClient` or add a `ClientOptions` struct.
+
+  This needs to land before retro/reporting where longer outputs will hit the 1024 token ceiling.
+
+  **Go concepts:** Struct defaults with zero-value handling — if `model` is empty string after YAML load, fall back to the default. Options pattern for configuring a client. Separating tuning config from required config.
+
+  **Verify:**
+  ```bash
+  go build ./...
+  # With no model/max_tokens in config.yaml, should still work (defaults apply)
+  go run main.go standup
+  # Add to config.yaml:
+  #   anthropic:
+  #     api_key: "sk-ant-..."
+  #     model: "claude-sonnet-4-5-20241022"
+  #     max_tokens: 2048
+  go run main.go standup  # should use the configured model
+  ```
+
+  **Commit message:** `feat(config): configurable model and max tokens`
+
+---
+
 ## Phase 2C: CLI Polish
 
-- [ ] **Commit 30 -- feat: add lipgloss for styled output**
+- [ ] **Commit 31 -- feat: add lipgloss for styled output**
 
   Add `charmbracelet/lipgloss` for colored, styled terminal output across all commands.
 
@@ -737,7 +773,7 @@
 
 ---
 
-- [ ] **Commit 31 -- feat: table-formatted list output**
+- [ ] **Commit 32 -- feat: table-formatted list output**
 
   Replace the plain numbered list in `list` with a formatted table using lipgloss table.
 
@@ -763,7 +799,7 @@
 
 ---
 
-- [ ] **Commit 32 -- feat: spinner for API calls**
+- [ ] **Commit 33 -- feat: spinner for API calls**
 
   Add a spinner/loading indicator while waiting for Claude API responses in standup, summary, retro, and chat.
 
@@ -796,7 +832,7 @@
 
 ---
 
-- [ ] **Commit 33 -- feat: use huh for interactive init command**
+- [ ] **Commit 34 -- feat: use huh for interactive init command**
 
   Replace raw `bufio` prompts in the `init` command with `charmbracelet/huh` forms.
 
@@ -825,7 +861,7 @@
 
 ## Phase 2D: AI Workflows and Reporting
 
-- [ ] **Commit 34 -- feat: retro command**
+- [ ] **Commit 35 -- feat: retro command**
 
   Create `prompts/retro.md` (wins/blockers/improvements template). Embed it in `prompts/prompts.go`. Create `cmd/retro.go` with `--days` (default 14) and `--tag` flags.
 
@@ -841,7 +877,7 @@
 
 ---
 
-- [ ] **Commit 35 -- feat: export command**
+- [ ] **Commit 36 -- feat: export command**
 
   Create `cmd/export.go`. Dumps entries as markdown grouped by date. Add `GetAllEntries() ([]Entry, error)` to store. Supports `--since`, `--until`, `--tag` flags. Outputs to stdout for piping.
 
@@ -858,7 +894,7 @@
 
 ---
 
-- [ ] **Commit 36 -- feat: stats command**
+- [ ] **Commit 37 -- feat: stats command**
 
   Create `cmd/stats.go`. Shows total entries, entries per day (with bar chart), tag breakdown sorted by count, most active day. Supports `--since` and `--until` flags.
 
@@ -871,3 +907,63 @@
   ```
 
   **Commit message:** `feat(cmd): stats command shows entry analytics`
+
+---
+
+## Phase 3: Time-Scale Reporting (Draft)
+
+> This phase extends `summary` into a multi-scale reporting tool rather than adding a parallel `report` command. Start narrow: prove monthly works, then expand to yearly.
+
+### 3A: Monthly and Yearly Summaries
+
+- [ ] **Commit 38 -- feat: summary --days 30 with monthly prompt**
+
+  Create `prompts/monthly.md` — a prompt template optimized for monthly-scale output: themes, project progress, key accomplishments, patterns. Embed it in `prompts/prompts.go`.
+
+  In `summary.go`, select the prompt template based on `--days`:
+  - 1–14 → `prompts.Summary` (weekly)
+  - 15–60 → `prompts.Monthly`
+  - 61+ → `prompts.Yearly` (once it exists, fall back to Monthly until then)
+
+  **Verify:**
+  ```bash
+  go run main.go summary --days 30
+  go run main.go summary --days 30 --tag backend
+  ```
+
+  **Commit message:** `feat(cmd): monthly summary prompt for longer time ranges`
+
+---
+
+- [ ] **Commit 39 -- feat: yearly summary prompt**
+
+  Create `prompts/yearly.md` — annual-scale template: major projects, growth areas, impact highlights. Designed to feed into self-reviews and promo docs. Embed it.
+
+  Update the threshold in `summary.go`: `--days 61+` selects `prompts.Yearly`.
+
+  **Verify:**
+  ```bash
+  go run main.go summary --days 365
+  go run main.go summary --days 90 --format promo
+  ```
+
+  **Commit message:** `feat(cmd): yearly summary prompt for annual reviews`
+
+---
+
+### 3B: Report Saving (Explicit)
+
+- [ ] **Commit 40 -- feat: summary --save flag**
+
+  Add `--save` flag to `summary`. When passed, write the generated output to `~/.worklog/reports/` as a timestamped markdown file with metadata header (date range, tags, model used). Without `--save`, behavior is unchanged (stdout only).
+
+  Add `worklog report list` subcommand to list saved reports. Add `worklog report show <filename>` to display one.
+
+  **Verify:**
+  ```bash
+  go run main.go summary --days 30 --save
+  go run main.go report list
+  go run main.go report show <filename>
+  ```
+
+  **Commit message:** `feat(cmd): save summary output to reports directory`
