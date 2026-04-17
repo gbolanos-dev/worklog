@@ -910,13 +910,36 @@
 
 ---
 
+- [ ] **Commit 38 -- chore: release v0.2.0**
+
+  Tag and release Phase 2 on main.
+
+  1. Update `README.md` with any new commands added during Phase 2 (delete, edit, init, retro, export, stats).
+  2. Create a git tag: `git tag v0.2.0`
+  3. Push the tag: `git push origin v0.2.0`
+  4. Create a GitHub release via `gh release create v0.2.0 --generate-notes --title "v0.2.0"` — let GitHub auto-generate the changelog from PR titles and commits.
+
+  **Release strategy:** tag on main. No release branches. `go install ...@v0.2.0` works off git tags. The update check system picks up the new release automatically.
+
+  **Verify:**
+  ```bash
+  make VERSION=v0.2.0 build
+  ./bin/worklog --version   # → worklog v0.2.0
+  go install github.com/gbolanos-dev/worklog/cmd/worklog@v0.2.0
+  worklog --version         # → worklog v0.2.0
+  ```
+
+  **Commit message:** `chore: release v0.2.0`
+
+---
+
 ## Phase 3: Time-Scale Reporting (Draft)
 
 > This phase extends `summary` into a multi-scale reporting tool rather than adding a parallel `report` command. Start narrow: prove monthly works, then expand to yearly.
 
 ### 3A: Monthly and Yearly Summaries
 
-- [ ] **Commit 38 -- feat: summary --days 30 with monthly prompt**
+- [ ] **Commit 39 -- feat: summary --days 30 with monthly prompt**
 
   Create `prompts/monthly.md` — a prompt template optimized for monthly-scale output: themes, project progress, key accomplishments, patterns. Embed it in `prompts/prompts.go`.
 
@@ -935,7 +958,7 @@
 
 ---
 
-- [ ] **Commit 39 -- feat: yearly summary prompt**
+- [ ] **Commit 40 -- feat: yearly summary prompt**
 
   Create `prompts/yearly.md` — annual-scale template: major projects, growth areas, impact highlights. Designed to feed into self-reviews and promo docs. Embed it.
 
@@ -953,7 +976,7 @@
 
 ### 3B: Report Saving (Explicit)
 
-- [ ] **Commit 40 -- feat: summary --save flag**
+- [ ] **Commit 41 -- feat: summary --save flag**
 
   Add `--save` flag to `summary`. When passed, write the generated output to `~/.worklog/reports/` as a timestamped markdown file with metadata header (date range, tags, model used). Without `--save`, behavior is unchanged (stdout only).
 
