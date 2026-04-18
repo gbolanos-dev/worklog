@@ -21,10 +21,7 @@ var ListCmd = &cobra.Command{
 			return err
 		}
 		if tag != "" {
-			entries, err = store.GetEntriesByTag(tag)
-			if err != nil {
-				return err
-			}
+			entries = store.FilterByTag(entries, tag)
 		}
 
 		for i, entry := range entries {

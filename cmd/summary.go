@@ -11,13 +11,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var week bool
+var days int
 var format string
 var summaryTag string
 
 var SummaryCmd = &cobra.Command{
 	Use:   "summary",
-	Short: "Summary of work entries for the week",
+	Short: "Summary of recent work entries",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
@@ -25,16 +25,13 @@ var SummaryCmd = &cobra.Command{
 			return err
 		}
 
-		since := time.Now().AddDate(0, 0, -7).Format("2006-01-02")
+		since := time.Now().AddDate(0, 0, -days).Format("2006-01-02")
 		entries, err := store.GetEntriesSince(since)
 		if err != nil {
 			return err
 		}
 		if summaryTag != "" {
-			entries, err = store.GetEntriesByTag(summaryTag)
-			if err != nil {
-				return err
-			}
+			entries = store.FilterByTag(entries, summaryTag)
 		}
 		if len(entries) == 0 {
 			fmt.Println("No entries were found.")
@@ -63,7 +60,7 @@ var SummaryCmd = &cobra.Command{
 }
 
 func init() {
-	SummaryCmd.Flags().BoolVar(&week, "week", false, "Show summary for the week")
 	SummaryCmd.Flags().StringVarP(&format, "format", "f", "", "Output format")
 	SummaryCmd.Flags().StringVarP(&summaryTag, "tag", "t", "", "Filter entries by tag")
+	SummaryCmd.Flags().IntVarP(&days, "days", "d", 7, "Number of days to include in the summary")
 }
