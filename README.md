@@ -41,9 +41,10 @@ worklog list --tag backend
 worklog standup
 worklog standup --issue PROJ-100 --pr 42
 
-# Weekly summary
-worklog summary --week
-worklog summary --week --format promo
+# Summary (defaults to last 7 days)
+worklog summary
+worklog summary --days 14
+worklog summary --format promo
 
 # Interactive chat with Claude using your work context
 worklog chat
