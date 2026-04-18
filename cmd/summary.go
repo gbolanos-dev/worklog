@@ -31,10 +31,7 @@ var SummaryCmd = &cobra.Command{
 			return err
 		}
 		if summaryTag != "" {
-			entries, err = store.GetEntriesByTag(summaryTag)
-			if err != nil {
-				return err
-			}
+			entries = store.FilterByTag(entries, summaryTag)
 		}
 		if len(entries) == 0 {
 			fmt.Println("No entries were found.")

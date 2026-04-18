@@ -53,31 +53,6 @@ func AddEntry(text string, tags []string) error {
 	return nil
 }
 
-func GetEntriesByTag(tag string) ([]Entry, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	dir := filepath.Join(home, ".worklog")
-
-	entries, err := loadEntries(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	var filtered []Entry
-	for _, entry := range entries {
-		for _, t := range entry.Tags {
-			if t == tag {
-				filtered = append(filtered, entry)
-				break
-			}
-		}
-	}
-	return filtered, nil
-}
-
 func GetEntriesForDate(date string) ([]Entry, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {

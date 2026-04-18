@@ -34,10 +34,7 @@ var StandupCmd = &cobra.Command{
 			return err
 		}
 		if standupTag != "" {
-			entries, err = store.GetEntriesByTag(standupTag)
-			if err != nil {
-				return err
-			}
+			entries = store.FilterByTag(entries, standupTag)
 		}
 		if len(entries) == 0 {
 			fmt.Println("No entries were found.")
