@@ -131,6 +131,19 @@ func GetEntriesSince(since string) ([]Entry, error) {
 	return filtered, nil
 }
 
+func FilterByTag(entries []Entry, tag string) []Entry {
+	var filtered []Entry
+	for _, entry := range entries {
+		for _, t := range entry.Tags {
+			if t == tag {
+				filtered = append(filtered, entry)
+				break
+			}
+		}
+	}
+	return filtered
+}
+
 func loadEntries(dir string) ([]Entry, error) {
 	data, err := os.ReadFile(filepath.Join(dir, "log.json"))
 	if err != nil && !os.IsNotExist(err) {
