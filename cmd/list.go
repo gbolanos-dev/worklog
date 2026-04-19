@@ -88,7 +88,7 @@ var ListCmd = &cobra.Command{
 func init() {
 	ListCmd.Flags().StringVarP(&date, "date", "d", "", "Filter entries by date")
 	ListCmd.Flags().StringVarP(&since, "since", "s", "", "Filter entries from date (inclusive)")
-	ListCmd.Flags().StringVarP(&until, "until", "u", "", "Filter entries until date (inclusive)")
+	ListCmd.Flags().StringVar(&until, "until", "", "Filter entries until date (inclusive)")
 	ListCmd.Flags().StringVarP(&tag, "tag", "t", "", "Filter entries by tag")
 	ListCmd.MarkFlagsMutuallyExclusive("date", "since")
 	ListCmd.MarkFlagsMutuallyExclusive("date", "until")
