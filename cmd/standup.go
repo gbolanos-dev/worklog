@@ -9,6 +9,7 @@ import (
 	"github.com/gbolanos-dev/worklog/claude"
 	"github.com/gbolanos-dev/worklog/config"
 	"github.com/gbolanos-dev/worklog/fetch"
+	"github.com/gbolanos-dev/worklog/internal/dateutil"
 	"github.com/gbolanos-dev/worklog/prompts"
 	"github.com/gbolanos-dev/worklog/store"
 	"github.com/spf13/cobra"
@@ -28,8 +29,15 @@ var StandupCmd = &cobra.Command{
 			return err
 		}
 
-		today := time.Now().Format("2006-01-02")
-		entries, err := store.GetEntriesForDate(today)
+		targetDate := time.Now().Format("2006-01-02")
+		if date != "" {
+			parsed, err := dateutil.Parse(date)
+			if err != nil {
+				return err
+			}
+			targetDate = parsed
+		}
+		entries, err := store.GetEntriesForDate(targetDate)
 		if err != nil {
 			return err
 		}
@@ -69,6 +77,7 @@ func init() {
 	StandupCmd.Flags().StringArrayVarP(&issues, "issue", "i", nil, "YouTrack issue IDs")
 	StandupCmd.Flags().StringArrayVarP(&prs, "pr", "p", nil, "GitHub PR number")
 	StandupCmd.Flags().StringVarP(&standupTag, "tag", "t", "", "Filter entries by tag")
+	StandupCmd.Flags().StringVarP(&date, "date", "d", "", "Generate standup for a specific date")
 }
 
 func buildEntriesText(entries []store.Entry) string {

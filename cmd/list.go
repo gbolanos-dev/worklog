@@ -4,10 +4,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gbolanos-dev/worklog/internal/dateutil"
 	"github.com/gbolanos-dev/worklog/store"
 	"github.com/spf13/cobra"
 )
 
+var date string
 var tag string
 
 var ListCmd = &cobra.Command{
@@ -15,8 +17,15 @@ var ListCmd = &cobra.Command{
 	Short: "List all work entries",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		today := time.Now().Format("2006-01-02")
-		entries, err := store.GetEntriesForDate(today)
+		targetDate := time.Now().Format("2006-01-02")
+		if date != "" {
+			parsed, err := dateutil.Parse(date)
+			if err != nil {
+				return err
+			}
+			targetDate = parsed
+		}
+		entries, err := store.GetEntriesForDate(targetDate)
 		if err != nil {
 			return err
 		}
@@ -32,5 +41,6 @@ var ListCmd = &cobra.Command{
 }
 
 func init() {
+	ListCmd.Flags().StringVarP(&date, "date", "d", "", "Filter entries by date")
 	ListCmd.Flags().StringVarP(&tag, "tag", "t", "", "Filter entries by tag")
 }
