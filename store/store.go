@@ -106,6 +106,25 @@ func GetEntriesSince(since string) ([]Entry, error) {
 	return filtered, nil
 }
 
+func FilterUntil(entries []Entry, until string) ([]Entry, error) {
+	cutoff, err := time.Parse("2006-01-02", until)
+	if err != nil {
+		return nil, err
+	}
+
+	var filtered []Entry
+	for _, entry := range entries {
+		entryDate, err := time.Parse("2006-01-02", entry.Date)
+		if err != nil {
+			return nil, err
+		}
+		if !entryDate.After(cutoff) {
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered, nil
+}
+
 func FilterByTag(entries []Entry, tag string) []Entry {
 	var filtered []Entry
 	for _, entry := range entries {
