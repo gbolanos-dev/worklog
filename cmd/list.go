@@ -10,6 +10,8 @@ import (
 )
 
 var date string
+var since string
+var until string
 var tag string
 
 var ListCmd = &cobra.Command{
@@ -17,18 +19,61 @@ var ListCmd = &cobra.Command{
 	Short: "List all work entries",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		targetDate := time.Now().Format("2006-01-02")
-		if date != "" {
-			parsed, err := dateutil.Parse(date)
+		// Validate: --until requires --since
+		if until != "" && since == "" {
+			return fmt.Errorf("--until requires --since to also be set")
+		}
+
+		var entries []store.Entry
+		var err error
+
+		if since != "" {
+			parsedSince, err := dateutil.Parse(since)
 			if err != nil {
 				return err
 			}
-			targetDate = parsed
+
+			if until != "" {
+				parsedUntil, err := dateutil.Parse(until)
+				if err != nil {
+					return err
+				}
+
+				// Validate: --until must be on or after --since
+				sinceTime, _ := time.Parse("2006-01-02", parsedSince)
+				untilTime, _ := time.Parse("2006-01-02", parsedUntil)
+				if untilTime.Before(sinceTime) {
+					return fmt.Errorf("--until (%s) must be on or after --since (%s)", parsedUntil, parsedSince)
+				}
+
+				entries, err = store.GetEntriesSince(parsedSince)
+				if err != nil {
+					return err
+				}
+				entries, err = store.FilterUntil(entries, parsedUntil)
+				if err != nil {
+					return err
+				}
+			} else {
+				entries, err = store.GetEntriesSince(parsedSince)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			targetDate := time.Now().Format("2006-01-02")
+			if date != "" {
+				targetDate, err = dateutil.Parse(date)
+				if err != nil {
+					return err
+				}
+			}
+			entries, err = store.GetEntriesForDate(targetDate)
+			if err != nil {
+				return err
+			}
 		}
-		entries, err := store.GetEntriesForDate(targetDate)
-		if err != nil {
-			return err
-		}
+
 		if tag != "" {
 			entries = store.FilterByTag(entries, tag)
 		}
@@ -42,5 +87,9 @@ var ListCmd = &cobra.Command{
 
 func init() {
 	ListCmd.Flags().StringVarP(&date, "date", "d", "", "Filter entries by date")
+	ListCmd.Flags().StringVarP(&since, "since", "s", "", "Filter entries from date (inclusive)")
+	ListCmd.Flags().StringVarP(&until, "until", "u", "", "Filter entries until date (inclusive)")
 	ListCmd.Flags().StringVarP(&tag, "tag", "t", "", "Filter entries by tag")
+	ListCmd.MarkFlagsMutuallyExclusive("date", "since")
+	ListCmd.MarkFlagsMutuallyExclusive("date", "until")
 }
