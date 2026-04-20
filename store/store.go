@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -136,6 +137,67 @@ func FilterByTag(entries []Entry, tag string) []Entry {
 		}
 	}
 	return filtered
+}
+
+func FindEntryById(id string) (*Entry, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return nil, err
+	}
+
+	entries, err := loadEntries(filepath.Join(home, ".worklog"))
+	if err != nil {
+		return nil, err
+	}
+
+	var matches []Entry
+	for _, entry := range entries {
+		if strings.HasPrefix(entry.ID, id) {
+			matches = append(matches, entry)
+		}
+	}
+
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("no entry found with ID prefix %q", id)
+	}
+	if len(matches) > 1 {
+		return nil, fmt.Errorf("ambiguous ID prefix %q matches %d entries, use a longer prefix", id, len(matches))
+	}
+
+	return &matches[0], nil
+}
+
+func DeleteEntry(id string) error {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+
+	dir := filepath.Join(home, ".worklog")
+	entries, err := loadEntries(dir)
+	if err != nil {
+		return err
+	}
+
+	found := false
+	for i, entry := range entries {
+		if strings.HasPrefix(entry.ID, id) {
+			entries = append(entries[:i], entries[i+1:]...)
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		return fmt.Errorf("no entry found with ID prefix %q", id)
+	}
+
+	data, err := json.MarshalIndent(entries, "", "")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(filepath.Join(dir, "log.json"), data, 0666)
 }
 
 func loadEntries(dir string) ([]Entry, error) {

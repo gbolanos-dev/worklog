@@ -38,6 +38,7 @@ func Run(args []string) int {
 	rootCmd.AddCommand(cmd.StandupCmd)
 	rootCmd.AddCommand(cmd.ChatCmd)
 	rootCmd.AddCommand(cmd.SummaryCmd)
+	rootCmd.AddCommand(cmd.DeleteCmd)
 
 	rootCmd.SetArgs(args)
 	err := rootCmd.Execute()

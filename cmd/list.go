@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gbolanos-dev/worklog/internal/dateutil"
@@ -79,7 +80,11 @@ var ListCmd = &cobra.Command{
 		}
 
 		for i, entry := range entries {
-			fmt.Printf("%d. %s\n", i+1, entry.Entry)
+			tags := ""
+			if len(entry.Tags) > 0 {
+				tags = " [" + strings.Join(entry.Tags, ", ") + "]"
+			}
+			fmt.Printf("%d. [%s] %s%s\n", i+1, entry.ID[:8], entry.Entry, tags)
 		}
 		return nil
 	},
