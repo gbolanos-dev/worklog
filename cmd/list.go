@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ var date string
 var since string
 var until string
 var tag string
+var jsonOutput bool
 
 var ListCmd = &cobra.Command{
 	Use:   "list",
@@ -79,6 +81,15 @@ var ListCmd = &cobra.Command{
 			entries = store.FilterByTag(entries, tag)
 		}
 
+		if jsonOutput {
+			out, err := json.MarshalIndent(entries, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(out))
+			return nil
+		}
+
 		for i, entry := range entries {
 			tags := ""
 			if len(entry.Tags) > 0 {
@@ -95,6 +106,7 @@ func init() {
 	ListCmd.Flags().StringVarP(&since, "since", "s", "", "Filter entries from date (inclusive)")
 	ListCmd.Flags().StringVar(&until, "until", "", "Filter entries until date (inclusive)")
 	ListCmd.Flags().StringVarP(&tag, "tag", "t", "", "Filter entries by tag")
+	ListCmd.Flags().BoolVar(&jsonOutput, "json", false, "Output entries in JSON format")
 	ListCmd.MarkFlagsMutuallyExclusive("date", "since")
 	ListCmd.MarkFlagsMutuallyExclusive("date", "until")
 }
