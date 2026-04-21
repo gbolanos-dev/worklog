@@ -16,19 +16,58 @@ type Entry struct {
 	Tags  []string `json:"tags"`
 }
 
-func AddEntry(text string, tags []string) error {
+// loadAll returns all entries and the worklog directory path.
+func loadAll() ([]Entry, string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 
 	dir := filepath.Join(home, ".worklog")
 	err = os.MkdirAll(dir, 0755)
 	if err != nil {
-		return err
+		return nil, "", err
 	}
 
 	entries, err := loadEntries(dir)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return entries, dir, nil
+}
+
+// saveEntries marshals and writes entries back to log.json.
+func saveEntries(dir string, entries []Entry) error {
+	data, err := json.MarshalIndent(entries, "", "")
+	if err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(dir, "log.json"), data, 0666)
+}
+
+// findByPrefix returns the index of the entry matching the ID prefix.
+// Returns an error if no match or ambiguous match.
+func findByPrefix(entries []Entry, id string) (int, error) {
+	var matches []int
+	for i, entry := range entries {
+		if strings.HasPrefix(entry.ID, id) {
+			matches = append(matches, i)
+		}
+	}
+
+	if len(matches) == 0 {
+		return -1, fmt.Errorf("no entry found with ID prefix %q", id)
+	}
+	if len(matches) > 1 {
+		return -1, fmt.Errorf("ambiguous ID prefix %q matches %d entries, use a longer prefix", id, len(matches))
+	}
+
+	return matches[0], nil
+}
+
+func AddEntry(text string, tags []string) error {
+	entries, dir, err := loadAll()
 	if err != nil {
 		return err
 	}
@@ -41,28 +80,11 @@ func AddEntry(text string, tags []string) error {
 	}
 
 	entries = append(entries, entry)
-
-	data, err := json.MarshalIndent(entries, "", "")
-	if err != nil {
-		return err
-	}
-
-	err = os.WriteFile(filepath.Join(dir, "log.json"), data, 0666)
-	if err != nil {
-		return err
-	}
-	return nil
+	return saveEntries(dir, entries)
 }
 
 func GetEntriesForDate(date string) ([]Entry, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	dir := filepath.Join(home, ".worklog")
-
-	entries, err := loadEntries(dir)
+	entries, _, err := loadAll()
 	if err != nil {
 		return nil, err
 	}
@@ -77,14 +99,7 @@ func GetEntriesForDate(date string) ([]Entry, error) {
 }
 
 func GetEntriesSince(since string) ([]Entry, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return nil, err
-	}
-
-	dir := filepath.Join(home, ".worklog")
-
-	entries, err := loadEntries(dir)
+	entries, _, err := loadAll()
 	if err != nil {
 		return nil, err
 	}
@@ -140,64 +155,47 @@ func FilterByTag(entries []Entry, tag string) []Entry {
 }
 
 func FindEntryById(id string) (*Entry, error) {
-	home, err := os.UserHomeDir()
+	entries, _, err := loadAll()
 	if err != nil {
 		return nil, err
 	}
 
-	entries, err := loadEntries(filepath.Join(home, ".worklog"))
+	idx, err := findByPrefix(entries, id)
 	if err != nil {
 		return nil, err
 	}
 
-	var matches []Entry
-	for _, entry := range entries {
-		if strings.HasPrefix(entry.ID, id) {
-			matches = append(matches, entry)
-		}
-	}
-
-	if len(matches) == 0 {
-		return nil, fmt.Errorf("no entry found with ID prefix %q", id)
-	}
-	if len(matches) > 1 {
-		return nil, fmt.Errorf("ambiguous ID prefix %q matches %d entries, use a longer prefix", id, len(matches))
-	}
-
-	return &matches[0], nil
+	return &entries[idx], nil
 }
 
 func DeleteEntry(id string) error {
-	home, err := os.UserHomeDir()
+	entries, dir, err := loadAll()
 	if err != nil {
 		return err
 	}
 
-	dir := filepath.Join(home, ".worklog")
-	entries, err := loadEntries(dir)
+	idx, err := findByPrefix(entries, id)
 	if err != nil {
 		return err
 	}
 
-	found := false
-	for i, entry := range entries {
-		if strings.HasPrefix(entry.ID, id) {
-			entries = append(entries[:i], entries[i+1:]...)
-			found = true
-			break
-		}
-	}
+	entries = append(entries[:idx], entries[idx+1:]...)
+	return saveEntries(dir, entries)
+}
 
-	if !found {
-		return fmt.Errorf("no entry found with ID prefix %q", id)
-	}
-
-	data, err := json.MarshalIndent(entries, "", "")
+func EditEntry(id, newText string) error {
+	entries, dir, err := loadAll()
 	if err != nil {
 		return err
 	}
 
-	return os.WriteFile(filepath.Join(dir, "log.json"), data, 0666)
+	idx, err := findByPrefix(entries, id)
+	if err != nil {
+		return err
+	}
+
+	entries[idx].Entry = newText
+	return saveEntries(dir, entries)
 }
 
 func loadEntries(dir string) ([]Entry, error) {
