@@ -1,6 +1,7 @@
 package store
 
 import (
+	"crypto/rand"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -39,7 +40,7 @@ func loadAll() ([]Entry, string, error) {
 
 // saveEntries marshals and writes entries back to log.json.
 func saveEntries(dir string, entries []Entry) error {
-	data, err := json.MarshalIndent(entries, "", "")
+	data, err := json.MarshalIndent(entries, "", "  ")
 	if err != nil {
 		return err
 	}
@@ -72,8 +73,12 @@ func AddEntry(text string, tags []string) error {
 		return err
 	}
 
+	if tags == nil {
+		tags = []string{}
+	}
+
 	entry := Entry{
-		ID:    fmt.Sprintf("%x", time.Now().UnixNano()),
+		ID:    generateID(),
 		Date:  time.Now().Format("2006-01-02"),
 		Entry: text,
 		Tags:  tags,
@@ -196,6 +201,12 @@ func EditEntry(id, newText string) error {
 
 	entries[idx].Entry = newText
 	return saveEntries(dir, entries)
+}
+
+func generateID() string {
+	b := make([]byte, 8)
+	rand.Read(b)
+	return fmt.Sprintf("%x", b)
 }
 
 func loadEntries(dir string) ([]Entry, error) {
